@@ -165,7 +165,6 @@ td.mono{font-family:var(--mono);font-size:13px}
         <button class="chip active" onclick="setFilter('alle',this)" id="chip-alle">Alle</button>
         <button class="chip" onclick="setFilter('Drehen',this)" id="chip-drehen">Drehen</button>
         <button class="chip" onclick="setFilter('Fräsen',this)" id="chip-fraesen">Fräsen</button>
-        <button class="chip" onclick="setFilter('p1',this)" id="chip-p1">Nur Prio 1</button>
         <span class="filter-sep"></span>
         <span class="count-label" id="count-label">–</span>
         <button class="btn-new" onclick="openModal()">
@@ -343,16 +342,26 @@ function bCss(b){if(b==='Drehen'||b==='Dreherei')return'b-drehen';if(b==='Fräse
 
 function renderList(){
   const today=new Date().toDateString();
-  const parts=allParts.filter(p=>{
-    if(!DONE.includes(p.status))return true;
-    // Show today's done items
-    const abgDate=p.ts_abg?new Date(p.ts_abg).toDateString():null;
-    return abgDate===today;
-  }).filter(p=>{if(currentFilter==='Drehen')return p.bereich==='Drehen';if(currentFilter==='Fräsen')return p.bereich==='Fräsen';if(currentFilter==='p1')return p.prio==1;return true;}).filter(p=>{if(statusFilter!=='alle')return p.status===statusFilter;return true;}).sort((a,b)=>{ const rd=a.reihenfolge-b.reihenfolge; return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich); });
-  document.getElementById('count-label').textContent=`${parts.length} Teile offen`;
+  const baseFilter=p=>{
+    if(currentFilter==='Drehen')return p.bereich==='Drehen';
+    if(currentFilter==='Fräsen')return p.bereich==='Fräsen';
+    return true;
+  };
+  const statusFlt=p=>statusFilter==='alle'||p.status===statusFilter;
+  const openParts=allParts
+    .filter(p=>!DONE.includes(p.status))
+    .filter(baseFilter).filter(statusFlt)
+    .sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
+  const doneTodayParts=allParts
+    .filter(p=>DONE.includes(p.status))
+    .filter(p=>{const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===today;})
+    .filter(baseFilter)
+    .sort((a,b)=>(b.ts_abg||'')>(a.ts_abg||'')?1:-1);
+  const parts=[...openParts].filter(p=>{if(currentFilter==='Drehen')return p.bereich==='Drehen';if(currentFilter==='Fräsen')return p.bereich==='Fräsen';if(currentFilter==='p1')return p.prio==1;return true;}).filter(p=>{if(statusFilter!=='alle')return p.status===statusFilter;return true;}).sort((a,b)=>{ const rd=a.reihenfolge-b.reihenfolge; return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich); });
+  document.getElementById('count-label').textContent=`${openParts.length} offen · ${doneTodayParts.length} heute fertig`;
   const _today=new Date().toDateString();
   document.getElementById('badge-offen').textContent=allParts.filter(p=>{if(!DONE.includes(p.status))return true;const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===_today;}).length;
-  document.getElementById('parts-tbody').innerHTML=parts.map(p=>`<tr draggable="true" ondragstart="dragStart(event,${p.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOn(event,${p.id})" onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="cursor:grab">
+  const openRows=openParts.map(p=>`<tr draggable="true" ondragstart="dragStart(event,${p.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOn(event,${p.id})" onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="cursor:grab">
     <td><span class="prio-badge prio-${p.prio}">${p.prio}</span></td>
     <td class="mono" style="font-weight:600">${p.nr}</td><td>${p.bez}</td>
     <td class="mono">${p.machine}</td>
@@ -361,6 +370,21 @@ function renderList(){
     <td class="mono" style="color:var(--text2)">${fmtTime(p.ts_qs||p.ts_angek)}</td>
     <td><span class="notiz-text">${p.notiz}</span></td>
   </tr>`).join('');
+  const separatorRow=doneTodayParts.length>0?`<tr style="pointer-events:none">
+    <td colspan="8" style="padding:6px 14px;background:#f0f4f8;border-top:2px solid var(--border2)">
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-family:var(--mono)">✓ Heute abgeschlossen – ${doneTodayParts.length} ${doneTodayParts.length===1?'Teil':'Teile'}</span>
+    </td>
+  </tr>`:'';
+  const doneRows=doneTodayParts.map(p=>`<tr onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="opacity:0.65">
+    <td><span class="prio-badge prio-${p.prio}">${p.prio}</span></td>
+    <td class="mono" style="font-weight:600">${p.nr}</td><td>${p.bez}</td>
+    <td class="mono">${p.machine}</td>
+    <td><span class="bereich-badge ${bCss(p.bereich)}">${p.bereich}</span></td>
+    <td><span class="status-badge ${sCss(p.status)}">${p.status}</span></td>
+    <td class="mono" style="color:var(--text2)">${fmtTime(p.ts_abg)}</td>
+    <td><span class="notiz-text">${p.notiz}</span></td>
+  </tr>`).join('');
+  document.getElementById('parts-tbody').innerHTML=openRows+separatorRow+doneRows;
   renderDetail();
 }
 
@@ -514,12 +538,22 @@ async function dropOn(e,targetId){
   if(tr){tr.classList.remove('tr-drag-over');tr.style.opacity='';}
   if(!dragId||dragId===targetId){dragId=null;return;}
   const today=new Date().toDateString();
-  const parts=allParts.filter(p=>{
-    if(!DONE.includes(p.status))return true;
-    // Show today's done items
-    const abgDate=p.ts_abg?new Date(p.ts_abg).toDateString():null;
-    return abgDate===today;
-  }).sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
+  const baseFilter=p=>{
+    if(currentFilter==='Drehen')return p.bereich==='Drehen';
+    if(currentFilter==='Fräsen')return p.bereich==='Fräsen';
+    return true;
+  };
+  const statusFlt=p=>statusFilter==='alle'||p.status===statusFilter;
+  const openParts=allParts
+    .filter(p=>!DONE.includes(p.status))
+    .filter(baseFilter).filter(statusFlt)
+    .sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
+  const doneTodayParts=allParts
+    .filter(p=>DONE.includes(p.status))
+    .filter(p=>{const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===today;})
+    .filter(baseFilter)
+    .sort((a,b)=>(b.ts_abg||'')>(a.ts_abg||'')?1:-1);
+  const parts=[...openParts].sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
   const fromIdx=parts.findIndex(p=>p.id===dragId);
   const toIdx=parts.findIndex(p=>p.id===targetId);
   if(fromIdx===-1||toIdx===-1){dragId=null;return;}
