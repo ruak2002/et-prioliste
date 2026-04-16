@@ -158,7 +158,7 @@ td.mono{font-family:var(--mono);font-size:13px}
   </div>
 </div>
 
-<div id="app-screen" style="display:none">
+<div id="app-screen" style="display:none;visibility:hidden">
   <div class="tabs">
     <button class="tab active" onclick="showTab('offen')" id="tab-offen">Offen <span class="tab-badge" id="badge-offen">–</span></button>
     <button class="tab" onclick="showTab('archiv')" id="tab-archiv">Archiv <span class="tab-badge" id="badge-archiv">–</span></button>
@@ -311,6 +311,7 @@ async function login(){try{const r=await msalInstance.loginPopup({scopes});showA
 function showApp(account){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
+  document.getElementById('app-screen').style.visibility='visible';
   document.getElementById('user-name').textContent=account.name||account.username;
   document.getElementById('conn-dot').className='header-dot ok';
   userEmail=(account.username||'').toLowerCase();
