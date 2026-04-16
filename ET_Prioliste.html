@@ -51,7 +51,7 @@ tbody tr.selected{background:#dce9f8}
 td{padding:14px 14px;font-size:14px;vertical-align:middle}
 td.mono{font-family:var(--mono);font-size:13px}
 .prio-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700;font-family:var(--mono)}
-.prio-1{background:var(--p1lt);color:var(--p1);border:1.5px solid var(--p1)}
+.prio-1{background:#e6f5ec;color:#1e7a3a;border:1.5px solid #1e7a3a}
 .prio-2{background:var(--p2lt);color:var(--p2);border:1.5px solid var(--accent)}
 .prio-3{background:var(--p3lt);color:var(--p3);border:1.5px solid var(--p3)}.prio-PK{background:#f0f0f0;color:#555;border:1.5px solid #999}.prio-WE{background:#e8f5ff;color:#1a9ae0;border:1.5px solid #1a9ae0}
 .status-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap}
@@ -345,8 +345,8 @@ td.mono{font-family:var(--mono);font-size:13px}
     <div id="prio-modal-info" style="font-size:14px;color:var(--text2);margin-bottom:16px"></div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;gap:8px">
-        <button onclick="setPrio('1')" style="flex:1;padding:14px 8px;border-radius:var(--radius);border:2px solid var(--border);background:#fff;cursor:pointer;font-family:var(--font);transition:all .15s" onmouseover="this.style.borderColor='var(--p1)';this.style.background='var(--p1lt)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='#fff'">
-          <div style="font-size:18px;font-weight:700;color:var(--p1);font-family:var(--mono)">1</div>
+        <button onclick="setPrio('1')" style="flex:1;padding:14px 8px;border-radius:var(--radius);border:2px solid var(--border);background:#fff;cursor:pointer;font-family:var(--font);transition:all .15s" onmouseover="this.style.borderColor='#1e7a3a';this.style.background='#e6f5ec'" onmouseout="this.style.borderColor='var(--border)';this.style.background='#fff'">
+          <div style="font-size:18px;font-weight:700;color:#1e7a3a;font-family:var(--mono)">1</div>
           <div style="font-size:11px;color:var(--text2);margin-top:3px">Höchste</div>
         </button>
         <button onclick="setPrio('2')" style="flex:1;padding:14px 8px;border-radius:var(--radius);border:2px solid var(--border);background:#fff;cursor:pointer;font-family:var(--font);transition:all .15s" onmouseover="this.style.borderColor='var(--p2)';this.style.background='var(--p2lt)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='#fff'">
