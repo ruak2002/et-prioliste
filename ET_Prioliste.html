@@ -228,7 +228,7 @@ td.mono{font-family:var(--mono);font-size:13px}
     <div id="list-container" style="display:none">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>P</th><th>Artikel-Nr</th><th>Bezeichnung</th><th>Maschine</th><th>Bereich</th><th>Status</th><th>Geplante Ankunft</th><th>Seit</th><th>Notiz</th></tr></thead>
+          <thead><tr><th style="width:36px;text-align:center">#</th><th>P</th><th>Artikel-Nr</th><th>Bezeichnung</th><th>Maschine</th><th>Bereich</th><th>Status</th><th>Geplante Ankunft</th><th>Seit</th><th>Notiz</th></tr></thead>
           <tbody id="parts-tbody"></tbody>
         </table>
       </div>
@@ -246,7 +246,7 @@ td.mono{font-family:var(--mono);font-size:13px}
     <div id="archiv-container" style="display:none">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>P</th><th>Artikel-Nr</th><th>Bezeichnung</th><th>Maschine</th><th>Bereich</th><th>Status</th><th>Eingetroffen</th><th>Abgeschlossen</th><th>Dauer</th><th>Grund</th></tr></thead>
+          <thead><tr><th>P</th><th>Artikel-Nr</th><th>Bezeichnung</th><th>Maschine</th><th>Bereich</th><th>Status</th><th>Eingetroffen</th><th>Abgeschlossen</th><th>Dauer</th><th>Grund</th>${'<th></th>'}</tr></thead>
           <tbody id="archiv-tbody"></tbody>
         </table>
       </div>
@@ -561,7 +561,8 @@ function renderList(){
     .sort((a,b)=>(b.ts_abg||'')>(a.ts_abg||'')?1:-1):[];
   document.getElementById('count-label').textContent=`${openParts.length} offen · ${doneTodayParts.length} heute fertig`;
   document.getElementById('badge-offen').textContent=allParts.filter(p=>{if(!DONE.includes(p.status))return true;const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===today;}).length;
-  const openRows=openParts.map(p=>`<tr draggable="${canAdmin()}" ondragstart="dragStart(event,${p.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOn(event,${p.id})" onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="cursor:grab">
+  const openRows=openParts.map((p,idx)=>`<tr draggable="${canAdmin()}" ondragstart="dragStart(event,${p.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOn(event,${p.id})" onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="cursor:grab">
+    <td class="mono" style="text-align:center;font-size:12px;color:var(--text3);font-weight:600;padding:14px 8px;min-width:36px">${idx+1}</td>
     <td><span class="prio-badge prio-${p.prio}">${p.prio}</span></td>
     <td class="mono" style="font-weight:600">${p.nr}</td><td>${p.bez}</td>
     <td class="mono">${p.machine}</td>
@@ -572,11 +573,12 @@ function renderList(){
     <td><span class="notiz-text">${p.notiz.includes("⚠")?"<span style='color:var(--p1);font-weight:600'>⚠ Rückweisung</span> "+p.notiz.replace(/⚠[^:]+:/,""):p.notiz}</span></td>
   </tr>`).join('');
   const separatorRow=doneTodayParts.length>0?`<tr style="pointer-events:none">
-    <td colspan="9" style="padding:6px 14px;background:#f0f4f8;border-top:2px solid var(--border2)">
+    <td colspan="10" style="padding:6px 14px;background:#f0f4f8;border-top:2px solid var(--border2)">
       <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-family:var(--mono)">✓ Heute abgeschlossen – ${doneTodayParts.length} ${doneTodayParts.length===1?'Teil':'Teile'}</span>
     </td>
   </tr>`:'';
   const doneRows=doneTodayParts.map(p=>`<tr onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="opacity:0.65">
+    <td></td>
     <td><span class="prio-badge prio-${p.prio}">${p.prio}</span></td>
     <td class="mono" style="font-weight:600">${p.nr}</td><td>${p.bez}</td>
     <td class="mono">${p.machine}</td>
@@ -649,7 +651,7 @@ function renderDetail(){
     ${next.length>0?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
       ${next.filter(s=>s!=='Freigegeben'&&s!=='Rückgewiesen').map(s=>`<button class="btn btn-primary" onclick="advanceStatus(${p.id},'${s}')">${s} →</button>`).join('')}
       ${next.filter(s=>s==='Freigegeben'||s==='Rückgewiesen').map(s=>`<button class="btn ${s==='Freigegeben'?'btn-success':'btn-danger'}" onclick="advanceStatus(${p.id},'${s}')">${s} →</button>`).join('')}
-      ${canAdmin()?`<button class="btn btn-sm" onclick="editPrio(${p.id})" style="margin-left:auto;color:var(--text3)">Prio ändern</button>`:''}
+      ${canAdmin()?`<button class="btn btn-sm" onclick="editPrio(${p.id})" style="margin-left:auto;color:var(--text3)">Prio ändern</button><button class="btn btn-danger btn-sm" onclick="deletePart(${p.id})">Löschen</button>`:''}
     </div>
     <div class="rueck-section" id="rueck-section">
       <label>Rückweisungsgrund *</label>
@@ -661,6 +663,7 @@ function renderDetail(){
     </div>`:`<div style="display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--border)">
       <span style="font-size:13px;color:${p.status==='Freigegeben'?'var(--p3)':'var(--p1)'};font-weight:600">${p.status==='Freigegeben'?'✓ Freigegeben':'✗ Rückgewiesen'}</span>
       ${p.status==='Rückgewiesen'?`<button class="btn btn-primary btn-sm" onclick="erneutMessen(${p.id})">Erneut messen →</button>`:''}
+      ${canAdmin()?`<button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="deletePart(${p.id})">Löschen</button>`:''}
     </div>`}
 
     <!-- Verlauf -->
@@ -717,8 +720,25 @@ async function setPrio(np){
     showToast('Priorität aktualisiert','ok');renderList();
   }catch(e){showToast('Fehler: '+e.message,'err');}
 }
+async function deletePart(id){
+  if(!canAdmin())return;
+  const p=allParts.find(x=>x.id===id);
+  if(!confirm(`Bauteil "${p?.nr||id}" wirklich unwiderruflich löschen?`))return;
+  try{
+    const digest=await getDigest();
+    await spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(LIST_NAME)}')/items(${id})`,{
+      method:'POST',
+      headers:{'X-RequestDigest':digest,'X-HTTP-Method':'DELETE','IF-MATCH':'*'}
+    });
+    allParts=allParts.filter(x=>x.id!==id);
+    if(selectedId===id)selectedId=null;
+    showToast(`${p?.nr||id} gelöscht`,'ok');
+    renderList();
+    if(document.getElementById('screen-archiv').classList.contains('active'))renderArchiv();
+  }catch(e){showToast('Fehler beim Löschen: '+e.message,'err');}
+}
 function openModal(){document.getElementById('modal-overlay').classList.add('show');setTimeout(()=>document.getElementById('f-nr').focus(),100);}
-function closeModal(){document.getElementById('modal-overlay').classList.remove('show');clearForm();}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show');document.querySelector('.scanner-body').style.visibility='visible';clearForm();}
 function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
 async function createPart(){
   const nr=document.getElementById('f-nr').value.trim();
@@ -772,6 +792,7 @@ function renderArchiv(){
     <td class="mono">${fmtDT(p.ts_qs)}</td><td class="mono">${fmtDT(p.ts_abg)}</td>
     <td class="mono" style="color:var(--accent);font-weight:600">${durStr(durMin(p.ts_qs,p.ts_abg))}</td>
     <td style="font-size:13px;color:var(--text2)">${p.rueck||''}</td>
+    <td>${canAdmin()?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePart(${p.id})">Löschen</button>`:''}</td>
   </tr>`).join('');
   document.getElementById('archiv-loading').style.display='none';
   document.getElementById('archiv-container').style.display='block';
@@ -1052,7 +1073,7 @@ function scannerCreateNew(){
 }
 function openScannerModal(){
   document.getElementById('modal-overlay').classList.add('show');
-  // After save, stay on scanner
+  document.querySelector('.scanner-body').style.visibility='hidden';
   _scannerModalActive=true;
   setTimeout(()=>document.getElementById('f-nr').focus(),100);
 }
