@@ -160,6 +160,15 @@ td.mono{font-family:var(--mono);font-size:13px}
     <button class="tab" onclick="showTab('archiv')" id="tab-archiv">Archiv <span class="tab-badge" id="badge-archiv">–</span></button>
   </div>
 
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 28px;background:#fff;border-bottom:1px solid var(--border)" id="search-bar">
+    <div style="position:relative;flex:1;max-width:380px">
+      <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="#9aa0b0" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#9aa0b0" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input style="width:100%;padding:8px 32px 8px 34px;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:14px;font-family:var(--font);color:var(--text);outline:none;background:#fff" id="search-input" type="text" placeholder="Artikelnummer scannen oder suchen..." oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
+      <button id="search-clear" onclick="clearSearch()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;display:none">✕</button>
+    </div>
+    <span style="font-size:12px;color:var(--text3)" id="search-hint"></span>
+  </div>
+
   <div class="main screen active" id="screen-offen">
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -355,7 +364,7 @@ async function loadParts(){
 async function updateItem(id,data){const digest=await getDigest();const listType=await getListItemType();await spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(LIST_NAME)}')/items(${id})`,{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'X-HTTP-Method':'MERGE','IF-MATCH':'*'},body:JSON.stringify({'__metadata':{'type':listType},...data})});}
 async function createItem(data){const digest=await getDigest();const listType=await getListItemType();return spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(LIST_NAME)}')/items`,{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},body:JSON.stringify({'__metadata':{'type':listType},...data})});}
 function mapPart(r){return{id:r[F.id],nr:r[F.titel]||'',bez:r[F.bez]||'',machine:r[F.machine]||'',bereich:r[F.bereich]||'',prio:r[F.prio]||'3',status:r[F.status]||'Angekündigt',notiz:r[F.notiz]||'',rueck:r[F.rueck]||'',reihenfolge:r[F.reihenfolge]||100,geplant:r[F.geplant]||null,ts_angek:r[F.ts_angek]||null,ts_qs:r[F.ts_qs]||null,ts_haend:r[F.ts_haend]||null,ts_abg:r[F.ts_abg]||null};}
-function prioScore(p,b){if(p=='PZ')return 90;if(p=='WE')return 85;if(p==1)return 100;if(p==2&&b==='Drehen')return 80;if(p==2&&b==='Fräsen')return 70;if(p==2)return 60;if(p==3&&b==='Drehen')return 40;if(p==3&&b==='Fräsen')return 35;return 30;}
+function prioScore(p,b){if(p=='1'||p==1)return 100;if(p=='2'||p==2)return 80;if(p=='3'||p==3)return 60;if(p=='PZ')return 40;if(p=='WE')return 20;return 50;}
 function fmtTime(iso){if(!iso)return'–';const d=new Date(iso);return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
 function fmtDT(iso){if(!iso)return'–';const d=new Date(iso);return`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')} ${fmtTime(iso)}`;}
 function durMin(a,b){if(!a||!b)return null;return Math.round((new Date(b)-new Date(a))/60000);}
