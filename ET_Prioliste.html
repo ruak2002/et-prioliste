@@ -497,7 +497,6 @@ function renderList(){
     if(currentFilter==='Fräsen')return p.bereich==='Fräsen';
     return true;
   };
-  const statusFlt=p=>statusFilter==='alle'||p.status===statusFilter;
   const showDoneFilter=statusFilter==='Rückgewiesen'||statusFilter==='Freigegeben';
   const openParts=allParts
     .filter(p=>{
@@ -513,7 +512,7 @@ function renderList(){
     .filter(p=>{const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===today;})
     .sort((a,b)=>(b.ts_abg||'')>(a.ts_abg||'')?1:-1):[];
   document.getElementById('count-label').textContent=`${openParts.length} offen · ${doneTodayParts.length} heute fertig`;
-  document.getElementById('badge-offen').textContent=allParts.filter(p=>{if(!DONE.includes(p.status))return true;const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===_today;}).length;
+  document.getElementById('badge-offen').textContent=allParts.filter(p=>{if(!DONE.includes(p.status))return true;const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===today;}).length;
   const openRows=openParts.map(p=>`<tr draggable="${canAdmin()}" ondragstart="dragStart(event,${p.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOn(event,${p.id})" onclick="selectPart(${p.id})" class="${selectedId===p.id?'selected':''}" style="cursor:grab">
     <td><span class="prio-badge prio-${p.prio}">${p.prio}</span></td>
     <td class="mono" style="font-weight:600">${p.nr}</td><td>${p.bez}</td>
@@ -675,8 +674,8 @@ async function createPart(){
     }
     const r=await createItem({[F.titel]:nr,[F.bez]:bez,[F.machine]:machine,[F.bereich]:bereich,[F.prio]:prio,[F.status]:'Angekündigt',[F.notiz]:notiz,[F.geplant]:geplantISO,[F.ts_angek]:now,[F.angelegtVon]:document.getElementById('user-name').textContent});
     allParts.unshift(mapPart(r.d));
-    const _today2=new Date().toDateString();
-    document.getElementById('badge-offen').textContent=allParts.filter(x=>{if(!DONE.includes(x.status))return true;const d=x.ts_abg?new Date(x.ts_abg).toDateString():null;return d===today;}).length;
+    const todayStr=new Date().toDateString();
+    document.getElementById('badge-offen').textContent=allParts.filter(x=>{if(!DONE.includes(x.status))return true;const d=x.ts_abg?new Date(x.ts_abg).toDateString():null;return d===todayStr;}).length;
     showToast(`${nr} angelegt`,'ok');closeModal();renderList();
   }catch(e){msg.className='form-msg err';msg.textContent='Fehler: '+e.message;}
 }
@@ -720,22 +719,7 @@ async function dropOn(e,targetId){
     if(currentFilter==='Fräsen')return p.bereich==='Fräsen';
     return true;
   };
-  const statusFlt=p=>statusFilter==='alle'||p.status===statusFilter;
-  const showDoneFilter=statusFilter==='Rückgewiesen'||statusFilter==='Freigegeben';
-  const openParts=allParts
-    .filter(p=>{
-      if(showDoneFilter)return p.status===statusFilter;
-      return !DONE.includes(p.status);
-    })
-    .filter(baseFilter)
-    .filter(p=>!showDoneFilter?(statusFilter==='alle'||p.status===statusFilter):true)
-    .filter(p=>matchSearch(p,searchQuery))
-    .sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
-  const doneTodayParts=(currentFilter==='alle'&&statusFilter==='alle')?allParts
-    .filter(p=>DONE.includes(p.status))
-    .filter(p=>{const d=p.ts_abg?new Date(p.ts_abg).toDateString():null;return d===today;})
-    .sort((a,b)=>(b.ts_abg||'')>(a.ts_abg||'')?1:-1):[];
-  const parts=[...openParts].sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
+  const parts=allParts.filter(p=>!DONE.includes(p.status)).sort((a,b)=>{const rd=a.reihenfolge-b.reihenfolge;return rd!==0?rd:prioScore(b.prio,b.bereich)-prioScore(a.prio,a.bereich);});
   const fromIdx=parts.findIndex(p=>p.id===dragId);
   const toIdx=parts.findIndex(p=>p.id===targetId);
   if(fromIdx===-1||toIdx===-1){dragId=null;return;}
