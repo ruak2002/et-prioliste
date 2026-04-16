@@ -533,7 +533,7 @@ async function createPart(){
       today.setHours(parseInt(h),parseInt(m),0,0);
       geplantISO=today.toISOString();
     }
-    const r=await createItem({[F.titel]:nr,[F.bez]:bez,[F.machine]:machine,[F.bereich]:bereich,[F.prio]:prio,[F.status]:'Angekündigt',[F.notiz]:notiz,[F.ts_angek]:now});
+    const r=await createItem({[F.titel]:nr,[F.bez]:bez,[F.machine]:machine,[F.bereich]:bereich,[F.prio]:prio,[F.status]:'Angekündigt',[F.notiz]:notiz,[F.geplant]:geplantISO,[F.ts_angek]:now});
     allParts.unshift(mapPart(r.d));
     const _today2=new Date().toDateString();
     document.getElementById('badge-offen').textContent=allParts.filter(x=>{if(!DONE.includes(x.status))return true;const d=x.ts_abg?new Date(x.ts_abg).toDateString():null;return d===_today2;}).length;
