@@ -1127,7 +1127,7 @@ async function loadMonitoringData(){
     if(isAdmin)fetches.push(spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(CMM_STILLSTAND_LIST)}')/items?$select=ID,Title,StartZeit,EndZeit,DauerMinuten&$top=200&$orderby=StartZeit%20desc`));
     const results=await Promise.all(fetches);
     cmmStatus=results[0].d.results.map(r=>({id:r.ID,maschine:r.Title,lastSignal:r.LastSignalZeit,status:r.CMMStatus}));
-    cmmStillstand=isAdmin?results[1].d.results.map(r=>({id:r.ID,maschine:r.Title,startZeit:r.StartZeit,endZeit:r.EndZeit,dauerMin:r.DauerMinuten}})):[];
+    cmmStillstand=isAdmin?results[1].d.results.map(r=>({id:r.ID,maschine:r.Title,startZeit:r.StartZeit,endZeit:r.EndZeit,dauerMin:r.DauerMinuten})):[];
   }catch(e){
     cmmStatus=[];cmmStillstand=[];
     console.warn('CMM-Daten Fehler:',e);
