@@ -1205,14 +1205,13 @@ function renderMonitoring(){
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px">${machineCards}</div>
     ${alertBanner}
     ${isAdmin?`
-    <div style="display:grid;grid-template-columns:repeat(2,auto);gap:12px;margin-bottom:22px;width:fit-content">
+    <div style="display:grid;grid-template-columns:repeat(1,auto);gap:12px;margin-bottom:22px;width:fit-content">
       <div class="stat-card"><div class="stat-label">Stillstände (30d)</div><div class="stat-val blue">${totalDown}</div></div>
-      <div class="stat-card"><div class="stat-label">Gesamte Stillstandszeit</div><div class="stat-val" style="font-size:20px;margin-top:10px">${durStr(totalMinDown)}</div></div>
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-family:var(--mono);margin-bottom:10px">Stillstand-Historie (letzte 30 Tage)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Start</th><th>Ende</th><th>Dauer</th><th>QS-Teile während Stillstand</th><th>Maschine</th></tr></thead>
+        <thead><tr><th>Start</th><th>Ende</th><th>Dauer</th><th style="text-align:center">QS-Teile während Stillstand</th><th>Maschine</th></tr></thead>
         <tbody>${histRows}</tbody>
       </table>
     </div>`:''}
