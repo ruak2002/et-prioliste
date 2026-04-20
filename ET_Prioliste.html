@@ -188,7 +188,8 @@ td.mono{font-family:var(--mono);font-size:13px}
 
 <div id="app-screen">
   <div class="tabs">
-    <button class="tab active" onclick="showTab('offen')" id="tab-offen">Offen <span class="tab-badge" id="badge-offen">–</span></button>
+    <button class="tab active" onclick="showTab('dashboard')" id="tab-dashboard">Dashboard</button>
+    <button class="tab" onclick="showTab('offen')" id="tab-offen">Offen <span class="tab-badge" id="badge-offen">–</span></button>
     <button class="tab" onclick="showTab('archiv')" id="tab-archiv">Archiv <span class="tab-badge" id="badge-archiv">–</span></button>
     <button class="tab" onclick="showTab('monitoring')" id="tab-monitoring" style="display:none">CMM Monitoring <span class="tab-badge" id="badge-monitoring">–</span></button>
   </div>
@@ -202,7 +203,11 @@ td.mono{font-family:var(--mono);font-size:13px}
     <span style="font-size:12px;color:var(--text3)" id="search-hint"></span>
   </div>
 
-  <div class="main screen active" id="screen-offen">
+  <div class="main screen active" id="screen-dashboard">
+    <div id="dashboard-content"></div>
+  </div>
+
+  <div class="main screen" id="screen-offen">
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span class="filter-label" style="min-width:70px">Bereich:</span>
@@ -493,9 +498,9 @@ async function loadParts(){
       }
     }catch(e){}
     renderList();
+    renderDashboard();
   }catch(e){document.getElementById('list-loading').innerHTML=`<div style="color:var(--p1)">Fehler: ${e.message}</div>`;}
-}
-async function updateItem(id,data){const digest=await getDigest();const listType=await getListItemType();await spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(LIST_NAME)}')/items(${id})`,{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'X-HTTP-Method':'MERGE','IF-MATCH':'*'},body:JSON.stringify({'__metadata':{'type':listType},...data})});}
+}(id,data){const digest=await getDigest();const listType=await getListItemType();await spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(LIST_NAME)}')/items(${id})`,{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest,'X-HTTP-Method':'MERGE','IF-MATCH':'*'},body:JSON.stringify({'__metadata':{'type':listType},...data})});}
 async function createItem(data){const digest=await getDigest();const listType=await getListItemType();return spFetch(`${SITE_URL}/_api/web/lists/getbytitle('${encodeURIComponent(LIST_NAME)}')/items`,{method:'POST',headers:{'Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},body:JSON.stringify({'__metadata':{'type':listType},...data})});}
 function mapPart(r){return{id:r[F.id],nr:r[F.titel]||'',bez:r[F.bez]||'',machine:r[F.machine]||'',bereich:r[F.bereich]||'',prio:r[F.prio]||'3',status:r[F.status]||'Angekündigt',notiz:r[F.notiz]||'',rueck:r[F.rueck]||'',reihenfolge:r[F.reihenfolge]||100,geplant:r[F.geplant]||null,angelegtVon:r[F.angelegtVon]||'',geaendertVon:r[F.geaendertVon]||'',letzteAenderung:r[F.letzteAenderung]||'',ts_angek:r[F.ts_angek]||null,ts_qs:r[F.ts_qs]||null,ts_haend:r[F.ts_haend]||null,ts_abg:r[F.ts_abg]||null};}
 function prioGroup(p){if(p=='1'||p==1)return 0;if(p=='2'||p==2)return 1;if(p=='3'||p==3)return 2;if(p=='PK')return 3;if(p=='WE')return 4;return 5;}
@@ -606,6 +611,7 @@ function renderList(){
   </tr>`).join('');
   document.getElementById('parts-tbody').innerHTML=openRows+separatorRow+doneRows;
   renderDetail();
+  if(document.getElementById('screen-dashboard').classList.contains('active'))renderDashboard();
 }
 
 function renderDetail(){
@@ -821,6 +827,96 @@ function showTab(id){
   document.getElementById('search-bar').style.display=(id==='offen')?'flex':'none';
   if(id==='archiv')renderArchiv();
   if(id==='monitoring')loadMonitoringData();
+  if(id==='dashboard')renderDashboard();
+}
+
+function renderDashboard(){
+  const cont=document.getElementById('dashboard-content');
+  if(!cont)return;
+  const now=new Date();
+  const todayStr=now.toDateString();
+  const shiftStart=new Date(now);
+  if(now.getHours()<6)shiftStart.setDate(shiftStart.getDate()-1);
+  shiftStart.setHours(6,0,0,0);
+
+  const angekuendigt=allParts.filter(p=>p.status==='Angekündigt');
+  const inQS=allParts.filter(p=>p.status==='Bauteil in QS');
+  const haendisch=allParts.filter(p=>p.status==='Händische Messung');
+  const freigegeben=allParts.filter(p=>p.status==='Freigegeben'&&p.ts_abg&&new Date(p.ts_abg)>=shiftStart);
+  const rueckgewiesen=allParts.filter(p=>p.status==='Rückgewiesen'&&p.ts_abg&&new Date(p.ts_abg)>=shiftStart);
+  const prio1=allParts.filter(p=>!DONE.includes(p.status)&&p.prio==='1');
+
+  // Greeting
+  const h=now.getHours();
+  const gruss=h<10?'Guten Morgen':h<14?'Guten Tag':'Mahlzeit';
+
+  // CMM status for dashboard
+  const cmmCards=cmmStatus.length>0?cmmStatus.map(m=>{
+    const spStatus=(m.status||'').toLowerCase();
+    const isDown=spStatus==='gestoppt';
+    const col=isDown?'var(--p1)':'var(--p3)';
+    const bg=isDown?'var(--p1lt)':'var(--p3lt)';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:${bg};border-radius:6px;border:1px solid ${col}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <span style="font-size:13px;font-weight:600;font-family:var(--mono)">${m.maschine}</span>
+      <span style="font-size:12px;color:${col};margin-left:4px">${isDown?'Gestoppt':'Läuft'}</span>
+    </div>`;
+  }).join(''):'';
+
+  cont.innerHTML=`
+    <div style="margin-bottom:24px">
+      <div style="font-size:22px;font-weight:600;color:var(--text)">${gruss}</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px">${now.toLocaleDateString('de-AT',{weekday:'long',day:'numeric',month:'long'})} · Schicht ab ${shiftStart.getHours()}:00 Uhr</div>
+    </div>
+
+    ${cmmStatus.length>0?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">${cmmCards}</div>`:''}
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px">
+
+      <div onclick="showTab('offen')" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 22px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin-bottom:10px">Angekündigt</div>
+        <div style="font-size:36px;font-weight:700;font-family:var(--mono);color:var(--text)">${angekuendigt.length}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">warten auf Ankunft</div>
+      </div>
+
+      <div onclick="showTab('offen')" style="background:#fff;border:2px solid var(--accent);border-radius:12px;padding:20px 22px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin-bottom:10px">In QS</div>
+        <div style="font-size:36px;font-weight:700;font-family:var(--mono);color:var(--accent)">${inQS.length}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">liegen bereit</div>
+      </div>
+
+      <div onclick="showTab('offen')" style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 22px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin-bottom:10px">Händische Messung</div>
+        <div style="font-size:36px;font-weight:700;font-family:var(--mono);color:#4a60b0">${haendisch.length}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px">in Bearbeitung</div>
+      </div>
+
+      <div onclick="showTab('archiv')" style="background:var(--p3lt);border:1px solid var(--p3);border-radius:12px;padding:20px 22px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:11px;font-weight:600;color:var(--p3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin-bottom:10px">Freigegeben heute</div>
+        <div style="font-size:36px;font-weight:700;font-family:var(--mono);color:var(--p3)">${freigegeben.length}</div>
+        <div style="font-size:12px;color:var(--p3);margin-top:6px">diese Schicht</div>
+      </div>
+
+      <div onclick="showTab('archiv')" style="background:var(--p1lt);border:1px solid var(--p1);border-radius:12px;padding:20px 22px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='var(--shadow)'">
+        <div style="font-size:11px;font-weight:600;color:var(--p1);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin-bottom:10px">Rückgewiesen heute</div>
+        <div style="font-size:36px;font-weight:700;font-family:var(--mono);color:var(--p1)">${rueckgewiesen.length}</div>
+        <div style="font-size:12px;color:var(--p1);margin-top:6px">diese Schicht</div>
+      </div>
+
+    </div>
+
+    ${prio1.length>0?`
+    <div style="background:var(--p1lt);border:1px solid var(--p1);border-radius:var(--radius);padding:14px 18px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--p1);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin-bottom:10px">⚡ Prio 1 – Sofort messen</div>
+      ${prio1.map(p=>`<div onclick="showTab('offen')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(214,59,59,.15);cursor:pointer">
+        <span class="prio-badge prio-1">1</span>
+        <span style="font-family:var(--mono);font-weight:700">${p.nr}</span>
+        <span style="font-size:13px;color:var(--text2)">${p.bez}</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--text3)">Maschine ${p.machine}</span>
+        <span class="status-badge ${sCss(p.status)}">${p.status}</span>
+      </div>`).join('')}
+    </div>`:''}
+  `;
 }
 function setStatusFilter(s,btn){try{localStorage.setItem('et_status',s);}catch(e){}statusFilter=s;['chip-s-alle','chip-s-angek','chip-s-qs','chip-s-haend','chip-s-rueck'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('active')});btn.classList.add('active');selectedId=null;renderList();}
 function setFilter(f,btn){try{localStorage.setItem('et_bereich',f);}catch(e){}currentFilter=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));btn.classList.add('active');selectedId=null;renderList();}
