@@ -1163,7 +1163,8 @@ function renderMonitoring(){
     :cmmStatus.map(m=>{
       const lastMs=m.lastSignal?new Date(m.lastSignal.endsWith('Z')?m.lastSignal:m.lastSignal+'Z').getTime():0;
       const minAgo=Math.floor((now-lastMs)/60000);
-      const isDown=minAgo>=5;
+      const spStatus=(m.status||'').toLowerCase();
+      const isDown=spStatus==='gestoppt'||minAgo>=5;
       const isAlert=isDown&&minAgo>=15&&qsNow>0;
       const col=isAlert?'var(--p1)':isDown?'#888':'var(--p3)';
       const bg=isAlert?'var(--p1lt)':isDown?'var(--bg3)':'var(--p3lt)';
